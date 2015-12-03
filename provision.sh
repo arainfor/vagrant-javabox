@@ -67,7 +67,6 @@ installPackages() {
 createDirs()
 {
   echo 'Creating directories'
-  echo 'Creating bin directory'
   mkdir -p ${HOME_BIN_DIR}
   mkdir -p ${DOWNLOAD_DIR}
   mkdir -p ${HOME_DIR}.m2
