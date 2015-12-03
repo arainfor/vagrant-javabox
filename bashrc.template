@@ -3,18 +3,14 @@
 export PATH="$HOME/.jenv/bin:$PATH"
 eval "$(jenv init -)"
 
-export PATH="$HOME/.rbenv/bin:$PATH"
-eval "$(rbenv init -)"
-
 export PATH="$HOME/.nodenv/bin:$PATH"
 eval "$(nodenv init -)"
 
-export PATH="$HOME/.pyenv/bin:$PATH"
-eval "$(pyenv init -)"
-
 HOME_BIN="$HOME/bin"
-export PATH="$HOME_BIN/apache-maven/bin:$HOME_BIN/gradle/bin:$HOME_BIN/sbt/bin:$HOME_BIN/apache-ant/bin:$PATH"
+export PATH="$HOME_BIN/apache-maven/bin:$HOME_BIN/apache-ant/bin:$PATH"
 
+#export PATH="$HOME_BIN/eclipse/bin:$PATH"
+export PATH="$HOME_BIN/idea/bin:$PATH"
 
 function jdebug_set() {
     jenv shell-options "$JENV_OPTIONS -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n"
