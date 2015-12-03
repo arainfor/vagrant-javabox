@@ -1,9 +1,15 @@
 #!/bin/bash
 
+#
+#  This script will provision a box for Open Retail development
+#
+
+set -e # We exit on any errors! 
+
 VAGRANT_DIR=/vagrant
 HOME_DIR=~/
-HOME_BIN_DIR=$HOME_DIR/bin
-JDKS=( jdk-6u45-linux-x64.tar.gz jdk-8u65-linux-x64.tar.gz )
+HOME_BIN_DIR=${HOME_DIR}bin
+DOWNLOAD_DIR=${HOME_DIR}download
 
 installPackage()
 {
@@ -12,106 +18,105 @@ installPackage()
   sudo apt-get install -y $packages >/dev/null 2>&1
 }
 
-indent() 
-{
-  echo -n '    '
-}
-
-downloadWithProgress()
-{
-  local url=$2
-  local file=$1
-  echo -n "Downloading $file:"
-  echo -n "    "
-  wget --progress=dot $url 2>&1 | grep --line-buffered "%" | sed -u -e 's/\.//g' | awk '{printf("\b\b\b\b%4s", $2)}'
-  echo -ne "\b\b\b\b"
-  echo " DONE"
-}
-
 download()
 {
-  local url=$2
-  local file=$1
-  echo "Downloading $file"
-  wget --progress=dot $url >/dev/null 2>&1
+  local url=$1
+  echo "Downloading $url to ${DOWNLOAD_DIR}"
+  wget -P ${DOWNLOAD_DIR} -q --progress=bar $url
 }
 
 installPackages()
 {
   echo "Installing packages"
-  indent; echo 'apt-get update'
+  echo 'apt-get update'
   sudo apt-get update >/dev/null 2>&1
-  indent; installPackage vim
-  indent; installPackage git
-  indent; installPackage mc
-  #dependencies for pyenv
-  indent; installPackage make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev
-  #dependencies for rbenv
-  indent; installPackage autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev
-  indent; installPackage apg
-  installMysql
-  installNginx
+  
+  # These are required but not really version specific
+  installPackage subversion cvs git
+  
+  # we should read a list of user defined packages too!
+  installPackage vim mc
 }
 
 createDirs()
 {
   echo 'Creating directories'
-  indent; echo 'Creating bin directory'
-  mkdir $HOME_BIN_DIR
+  echo 'Creating bin directory'
+  mkdir -p ${HOME_BIN_DIR}
+  mkdir -p ${DOWNLOAD_DIR}
 }
 
-downloadJdks()
-{
-  echo "Downloading jdks"
-  for jdk in "${JDKS[@]} 
-  do 
-    if [ ! -e $jdk ] 
-    then 
-      indent; echo "There is no $jdk"
-      indent; indent; download "$jdk" "http://sof-tech.pl/jdk/$jdk"
-    else 
-      indent; echo "$jdk is available"
-    fi 
-  done
+extract() {
+  local file=$1
+  echo "Extracting ${file}"
+  echo "Command:tar -zxvf ${file} -C ${HOME_BIN_DIR}"
+  tar -zxvf ${file} -C ${HOME_BIN_DIR}  >/dev/null 2>&1
 }
 
-installJdks()
-{
-  echo 'Installing jdks'
-  for jdk in "${JDKS[@]}
-  do 
-    indent; echo "Extracting $file"
-    tar xvzf ./$jdk >/dev/null 2>&1
-    indent; echo 'Cleaning'
-    rm $jdk
-  done
+installJdks() {
+  echo "Installing Standard JDK(s)"
+  file=jdk1.6.0_41.tgz
+  downloadFile=${DOWNLOAD_DIR}/${file};
+  if [ ! -e $downloadFile ] 
+  then 
+    jdk="http://156.24.34.140/release/java/${file}"
+    download "${jdk}"
+  fi
+  extract ${downloadFile}
+  
+  echo "Install JDK(s) done!"
+}
+
+installIbmJdk() {
+  echo "Installing IBM JDK"  
+  #file=ibm-java-x86_64-sdk-6.0.14.0.bin;
+  file=ibm-java-jre-6.0-9.1-linux-i386.tgz
+  downloadFile=${DOWNLOAD_DIR}/${file};
+  if [ ! -e $downloadFile ] 
+  then 
+    download http://156.24.31.131/download/${file}
+  fi
+  #chmod +x ${downloadFile}
+  #sudo ln -s /lib/x86_64-linux-gnu/libc.so.6 /lib/
+  #${downloadFile} -i silent
+  extract ${downloadFile}
+  echo "Install IBM JDK done!"
 }
 
 installEnvManagers()
 {
   echo 'Installing environment managers (for Java and node.js) '
-  indent; echo 'Installing jenv'
-  indent; indent; echo 'Clonning from github to ~/.jenv'
-  git clone https://github.com/gcuisinier/jenv.git ~/.jenv >/dev/null 2>&1
-  indent; indent; echo "Setting environment variables"
+  echo 'Installing jenv'
+  if [ ! -e ~/.jenv ] 
+  then
+    echo 'Clonning from github to ~/.jenv'
+    git clone https://github.com/gcuisinier/jenv.git ~/.jenv >/dev/null 2>&1
+  fi
+  echo "Setting environment variables"
   export PATH="$HOME/.jenv/bin:$PATH"
   eval "$(jenv init -)"
-  indent; indent; echo 'Make build tools jenv aware'
+  echo 'Make build tools jenv aware'
   message=`jenv enable-plugin ant`
-  indent; indent; indent; echo $message
+  echo $message
   message=`jenv enable-plugin maven`
-  indent; indent; indent; echo $message
+  echo $message
   message=`jenv enable-plugin gradle`
-  indent; indent; indent; echo $message
+  echo $message
   message=`jenv enable-plugin sbt`
-  indent; indent; indent; echo $message
+  echo $message
 
-  indent; echo 'Installing nodenv'
-  indent; indent; echo 'Clonning from github to ~/.nodenv'
-  git clone https://github.com/OiNutter/nodenv.git ~/.nodenv >/dev/null 2>&1
-  indent; indent; echo 'Installing plugins that provide nodenv install'
-  git clone https://github.com/OiNutter/node-build.git ~/.nodenv/plugins/node-build >/dev/null 2>&1
-  indent; indent; echo "Setting environment variables"
+  echo 'Installing nodenv'
+  if [ ! -e ~/.nodenv ] 
+  then
+    echo 'Clonning from github to ~/.nodenv'
+    git clone https://github.com/OiNutter/nodenv.git ~/.nodenv >/dev/null 2>&1
+  fi
+  if [ ! -e ~/.nodenv/plugins/node-build ] 
+  then
+    echo 'Installing plugins that provide nodenv install'
+    git clone https://github.com/OiNutter/node-build.git ~/.nodenv/plugins/node-build >/dev/null 2>&1
+  fi
+  echo "Setting environment variables"
   export PATH="$HOME/.nodenv/bin:$PATH"
   eval "$(nodenv init -)"
 
@@ -127,16 +132,21 @@ updateBashrc()
 
 installRuntimes()
 {
-  echo 'Install runtimes using environment managers'
-  indent; echo 'Install java'
-  for jdk in `ls $HOME_BIN_DIR/ | grep jdk`; do jenv add $HOME_BIN_DIR/$jdk >/dev/null 2>&1; done
-  indent; echo 'Set jdk 1.8 globally'
-  jenv global 1.8
+  set +e
+  echo "Install runtimes using environment managers"
+  echo "Install java from ${HOME_BIN_DIR}"
+  for jdk in `ls ${HOME_BIN_DIR}/ | grep jdk`; 
+  do
+    echo "Add ${jdk}" 
+    $HOME/.jenv/bin/jenv add ${HOME_BIN_DIR}/${jdk} >/dev/null 2>&1; 
+  done
+  echo 'Set jdk 1.6 globally'
+  $HOME/.jenv/bin/jenv global 1.6
 
-  indent; echo 'Install node.js'
-  nodenv install 4.2.1 >/dev/null 2>&1
-  nodenv global 4.2.1
-
+  echo 'Install node.js'
+  $HOME/.nodenv/bin/nodenv install 4.2.1 >/dev/null 2>&1
+  $HOME/.nodenv/bin/nodenv global 4.2.1
+  set -e
 }
 
 
@@ -148,12 +158,17 @@ installingApp()
   local link_src=$4
   local link_target=$5
   echo "Installing $tool_name"
-  indent; download $file $url
-  indent; echo -n "Extracting $file"
+  downloadFile=${DOWNLOAD_DIR}/${file};
+  if [ ! -e $downloadFile ] 
+  then 
+    download $url
+  fi
+  echo -n "Extracting $file"
+  
   if [[ "$file" =~ .*tar.gz$ || "$file" =~ .*tgz$ ]]
   then 
     echo " using tar"
-    tar xvzf $file >/dev/null 2>&1
+    extract ${downloadFile}
   else
     if [[ "$file" =~ .*zip$ ]]
     then
@@ -161,22 +176,22 @@ installingApp()
       unzip $file >/dev/null 2>&1
     else
       echo
-      indent; indent; echo "Can't extract $file. Unknown ext"
+      echo "Can't extract $file. Unknown ext"
     fi
   fi
-  indent; echo 'Cleaning'
-  rm $file
-  indent; echo "Creating symbolic link $link_target"
-  ln -s $link_src $link_target
+  echo "Creating symbolic link $link_src to $link_target"
+  ln -sf $link_src $link_target
 }
 
 installingMvn()
 {
   installingApp 'apache-maven' \
-    apache-maven-3.3.3-bin.tar.gz \
-    http://www.eu.apache.org/dist/maven/maven-3/3.3.3/binaries/apache-maven-3.3.3-bin.tar.gz \
+    apache-maven-3.3.9-bin.tar.gz \
+    http://supergsego.com/apache/maven/maven-3/3.3.9/binaries/apache-maven-3.3.9-bin.tar.gz \
     'apache-maven*' \
     apache-maven
+    
+  echo "Apache Maven installed"
 }
 
 installingAnt()
@@ -186,6 +201,8 @@ installingAnt()
     http://www.eu.apache.org/dist/ant/binaries/apache-ant-1.9.6-bin.tar.gz \
     'apache-ant*' \
     apache-ant
+    
+  echo "Apache Ant installed"
 }
 
 installingTools() 
@@ -198,12 +215,8 @@ installingTools()
 run() {
   createDirs
   installPackages
-  cd $VAGRANT_DIR
-  downloadJdks
-  echo "Copying jdks to $HOME_BIN_DIR" >/dev/null 2>&1
-  cp -r $VAGRANT_DIR/jdk*.tar.gz $HOME_BIN_DIR
-  cd $HOME_BIN_DIR  
   installJdks
+  installIbmJdk
   installingTools
   installEnvManagers
   updateBashrc
@@ -211,12 +224,7 @@ run() {
 }
 
 
-if [ ! -f "/var/vagrant_provision" ]; then
-  sudo touch /var/vagrant_provision
-  run
-else
-  echo "Nothing to do"
-fi
+run
 
 
 
