@@ -60,7 +60,7 @@ installPackages() {
   
   # Need at least a base java greater than java6 for maven
   echo "Processing default JDK"
-  installPackage openjdk-7-jdk
+  installPackage openjdk-8-jdk
   
   # we should read a list of user defined packages too!
   installPackage jed vim mc expect
