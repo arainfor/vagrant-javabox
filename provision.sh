@@ -192,7 +192,7 @@ installRuntimes() {
     javaHome=""
     for (( i=${elements}; i>0; i--));
     do 
-	javaHome-/${array[$i]}$[javaHome]
+	javaHome=/${array[$i]}$[javaHome]
     done	
     "$HOME"/.jenv/bin/jenv add "${javaHome}" >/dev/null 2>&1;
   done <<< "$output"
@@ -306,7 +306,7 @@ installAndroidSdk() {
 
 installTools() {
   installMvn
-  installAnt
+  #installAnt
 }
 
 info() {
