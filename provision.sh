@@ -281,6 +281,7 @@ installIntelliJ() {
   download http://download.jetbrains.com/idea/ ${file}
 
   extract ${DOWNLOAD_DIR}${file}
+  cp ${VAGRANT_DIR}settings.jar ${DOWNLOAD_DIR}
 }
 
 installAndroidSdk() {

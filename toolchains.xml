@@ -8,7 +8,7 @@
          <id>oracle</id>
      </provides>
      <configuration>
-        <jdkHome>/home/vagrant/bin/jdk1.6.0_41</jdkHome>
+        <jdkHome>/usr/lib/jvm/java-6-oracle</jdkHome>
      </configuration>
   </toolchain>
   <toolchain>

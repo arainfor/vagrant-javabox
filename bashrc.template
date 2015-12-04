@@ -17,6 +17,8 @@ export ANDROID_HOME="$BIN_DIR/android-sdk-linux"
 export PATH="${ANDROID_HOME}/tools:$PATH"
 export PATH="${ANDROID_HOME}/platform-tools:$PATH"
 
+export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-amd64
+
 function jdebug_set() {
     jenv shell-options "$JENV_OPTIONS -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n"
 }
