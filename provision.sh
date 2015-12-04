@@ -8,14 +8,14 @@ set -e # We exit on any errors!
 
 VAGRANT_DIR=/vagrant/
 HOME_DIR=~/
-HOME_BIN_DIR=${HOME_DIR}bin/
+BIN_DIR=${HOME_DIR}bin/
 DOWNLOAD_DIR=${HOME_DIR}download/
 ORACLE_PPA_INSTALL=true
 
 installPackage() {
   local packages=$*
   echo "Installing $packages"
-  sudo apt-get install -y "$packages" >/dev/null 2>&1
+  sudo apt-get install -y $packages >/dev/null 2>&1
 }
 
 #
@@ -29,13 +29,14 @@ download() {
   then
     echo "Downloading ${url} to ${downloadFile}"
     wget -P ${DOWNLOAD_DIR} -q --progress=bar "${url}"
+    echo "Download complete"
   else
     echo "Download skipped for cached file ${downloadFile}" 
   fi
 }
 
 installPackages() {
-  echo "Installing packages"
+  echo "Begin Install packages"
 
   if [ "$ORACLE_PPA_INSTALL" = true ] 
   then
@@ -53,21 +54,22 @@ installPackages() {
     sudo apt-get update >/dev/null 2>&1
   fi
   
-  
   # These are required but not really version specific
+  echo "Processing VCS packages"
   installPackage subversion cvs git
   
   # Need at least a base java greater than java6 for maven
-  installPackage openjdk-7-jre #openjdk-7-jdk
+  echo "Processing default JDK"
+  installPackage openjdk-7-jdk
   
   # we should read a list of user defined packages too!
-  installPackage vim mc
+  installPackage jed vim mc expect
 }
 
 createDirs()
 {
   echo 'Creating directories'
-  mkdir -p ${HOME_BIN_DIR}
+  mkdir -p ${BIN_DIR}
   mkdir -p ${DOWNLOAD_DIR}
   mkdir -p ${HOME_DIR}.m2
 }
@@ -75,8 +77,10 @@ createDirs()
 extract() {
   local file=$1
   echo "Extracting ${file}"
-  echo "Command:tar -zxvf ${file} -C ${HOME_BIN_DIR}"
-  tar -zxf "${file}" -C ${HOME_BIN_DIR}#  >/dev/null 2>&1
+  tarCmd="tar -zxvf ${file} -C ${BIN_DIR}"
+  echo "Command:${tarCmd}"
+  ${tarCmd} >/dev/null 2>&1
+  echo "Extract complete"
 }
 
 installJdks() {
@@ -162,38 +166,50 @@ updateBashrc() {
   source ${HOME_DIR}.bashrc
 }
 
-
-installRuntimes()
-{
+installRuntimes() {
   set +e
   echo "Install runtimes using environment managers"
-  echo "Install java from ${HOME_BIN_DIR}"
+  echo "Install java from ${BIN_DIR}"
 
-  for jdk in $(ls ${HOME_BIN_DIR} | grep jdk); 
+  for jdk in $(ls ${BIN_DIR} | grep jdk); 
   do
-    jdkFqp=${HOME_BIN_DIR}${jdk}
+    jdkFqp=${BIN_DIR}${jdk}
     echo "Add ${jdkFqp}"
     "$HOME"/.jenv/bin/jenv add "${jdkFqp}" >/dev/null 2>&1;
   done
-  echo 'Set jdk 1.6 globally'
-  "$HOME"/.jenv/bin/jenv global 1.6
+
+  #echo 'Set jdk 1.6 globally'
+  #"$HOME"/.jenv/bin/jenv global 1.6
 
   output=$(update-alternatives --list java)
   while read -r jdkFqp;
   do
     echo "Add ${jdkFqp}"
-    "$HOME"/.jenv/bin/jenv add "${jdkFqp}" >/dev/null 2>&1;
+    IFS=/ read -ra array <<< "$jdkFqp"
+    elements=${#array[@]}
+    let elements=$((elements-3))
+    javaHome=""
+    for (( i=${elements}; i>0; i--));
+    do 
+	javaHome-/${array[$i]}$[javaHome]
+    done	
+    "$HOME"/.jenv/bin/jenv add "${javaHome}" >/dev/null 2>&1;
   done <<< "$output"
 
   echo 'Install node.js'
   "$HOME"/.nodenv/bin/nodenv install 4.2.1 >/dev/null 2>&1
   "$HOME"/.nodenv/bin/nodenv global 4.2.1
+
+  echo "Install grunt"
+  npm install -g grunt-cli
+  echo "Install bower"
+  npm install -g bower
+
   set -e
 }
 
 
-installApp()
-{
+installApp() {
   local tool_name=$1
   local file=$2
   local url=$3
@@ -202,7 +218,7 @@ installApp()
   echo "Installing $tool_name"
   downloadFile=${DOWNLOAD_DIR}${file};
   download "$url" "$file"
-  echo -n "Extracting $file"
+  echo -n "Installing from $file"
   
   if [[ "$file" =~ .*tar.gz$ || "$file" =~ .*tgz$ ]]
   then 
@@ -230,7 +246,7 @@ installMvn()
     'apache-maven*' \
     apache-maven
 
-  installPackage maven
+  #installPackage maven
   echo "Apache Maven installed"
 
   cp ${VAGRANT_DIR}toolchains.xml ${HOME_DIR}.m2
@@ -250,27 +266,49 @@ installAnt()
 
 installEclipse() {
   echo "Downloading Eclipse"
-  wget -P ${DOWNLOAD_DIR} -q --progress=bar http://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/mars/R/eclipse-jee-mars-R-linux-gtk-x86_64.tar.gz&r=1
-  
-  extract ${DOWNLOAD_DIR}eclipse-jee-mars-R-linux-gtk-x86_64.tar.gz
+  local file=eclipse-jee-mars-R-linux-gtk-x86_64.tar.gz
+  if [ ! -e "$file" ]
+  then
+      wget -P ${DOWNLOAD_DIR} -q --progress=bar http://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/mars/R/eclipse-jee-mars-R-linux-gtk-x86_64.tar.gz&r=1
+  fi
+  extract ${DOWNLOAD_DIR}${file}
 }
 
 installIntelliJ() {
-  echo "Downloading IntelliJ IDEA"
-  wget -P ${DOWNLOAD_DIR} -q --progress=bar http://download.jetbrains.com/idea/ideaIC-15.0.1.exe
-  
-  extract ${DOWNLOAD_DIR}ideaIC-15.0.1.exe
+  echo "Install IntelliJ IDEA"
+  # file=ideaIC-14.1.5.tar.gz
+  local file=ideaIC-15.0.1.tar.gz
+  download http://download.jetbrains.com/idea/ ${file}
+
+  extract ${DOWNLOAD_DIR}${file}
 }
 
-installTools() 
-{
-  cd $HOME_BIN_DIR
+installAndroidSdk() {
+
+    echo "Install Android SDK"
+    local file=android-sdk_r24.4.1-linux.tgz
+    download http://dl.google.com/android/ ${file}
+
+    extract ${DOWNLOAD_DIR}${file}
+
+    set COMPONENTS="platform-tools,android-19,extra-android-support"
+    set LICENSES="android-sdk-license-5be876d5|mips-android-sysimage-license-15de68cc|intel-android-sysimage-license-1ea702d1"
+    curl -L https://raw.github.com/embarkmobile/android-sdk-installer/version-2/android-sdk-installer | bash /dev/stdin --install=$COMPONENTS --accept=$LICENSES && source ~/.android-sdk-installer/env  >/dev/null 2>&1;
+    
+#    "echo y | ${BIN_DIR}android-sdk-linux/tools/android -s update sdk -u --filter platform-tools"
+#    "echo y | ${BIN_DIR}android-sdk-linux/tools/android -s update sdk -u --filter android-19"
+#    "echo y | ${BIN_DIR}android-sdk-linux/tools/android -s update sdk -u --filter extra-android-support"
+
+    echo "Android Install complete"
+}
+
+installTools() {
   installMvn
   installAnt
 }
 
 info() {
-  echo "Provisioning your Base Box for Open Retail development"
+  echo "Provisioning your Base Box for Open Retail 2.2 development"
 }
 
 run() {
@@ -280,9 +318,10 @@ run() {
   installJdks
   installIbmJdk
   installTools
-  ##installEnvManagers
-  ##installRuntimes
+  installEnvManagers
+  installRuntimes
   installIntelliJ
+  installAndroidSdk
   #installEclipse
   updateBashrc
 }
