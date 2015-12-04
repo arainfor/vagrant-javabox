@@ -49,20 +49,21 @@ installPackages() {
     echo 'apt-get update'
     sudo apt-get update >/dev/null 2>&1
     installPackage oracle-java6-installer
+    # Need at least a base java greater than java6 for maven
+    installPackage oracle-java8-installer
   else
     echo 'apt-get update'
     sudo apt-get update >/dev/null 2>&1
+    # Need at least a base java greater than java6 for maven
+    echo "Processing default JDK"
+    installPackage openjdk-7-jdk
   fi
   
   # These are required but not really version specific
   echo "Processing VCS packages"
   installPackage subversion cvs git
   
-  # Need at least a base java greater than java6 for maven
-  echo "Processing default JDK"
-  installPackage openjdk-8-jdk
-  
-  # we should read a list of user defined packages too!
+    # we should read a list of user defined packages too!
   installPackage jed vim mc expect
 }
 
