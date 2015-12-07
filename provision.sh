@@ -9,9 +9,8 @@ set -e # We exit on any errors!
 VAGRANT_DIR=/vagrant/
 HOME_DIR=~/
 BIN_DIR=${HOME_DIR}bin/
-DOWNLOAD_DIR=${HOME_DIR}download/
+DOWNLOAD_DIR=${VAGRANT_DIR}download/
 ORACLE_PPA_INSTALL=true
-LOCAL_HOSTED_PATH=${VAGRANT_DIR}download/
 
 installPackage() {
   local packages=$*
@@ -26,16 +25,6 @@ download() {
   local url=$1$2
   local file=$2
   local downloadFile=${DOWNLOAD_DIR}${file}
-
-  if [ ! -z "$LOCAL_HOSTED_PATH" ]
-  then
-      #echo "Install from local resources"
-      if [ ! -e "$downloadfile" ]
-      then
-	  #echo "Using locally hosted files"
-	  cp ${LOCAL_HOSTED_PATH}${file} ${downloadFile}
-      fi
-  fi
 
   if [ ! -e "$downloadFile" ]
   then
@@ -296,7 +285,6 @@ installIntelliJ() {
   download http://download.jetbrains.com/idea/ ${file}
 
   extract ${DOWNLOAD_DIR}${file}
-  cp ${LOCAL_HOSTED_PATH}settings.jar ${DOWNLOAD_DIR}
 }
 
 installAndroidSdk() {
@@ -323,6 +311,13 @@ installTools() {
   #installAnt
 }
 
+intallChrome() {
+  wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add - 
+  sudo sh -c 'echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+  sudo apt-get update
+  sudo apt-get install google-chrome-stable
+}
+
 info() {
   echo "Provisioning your Base Box for Open Retail 2.2 development"
 }
@@ -339,6 +334,7 @@ run() {
   installRuntimes
   installIntelliJ
   #installEclipse
+  installChrome
   updateBashrc
 }
 
