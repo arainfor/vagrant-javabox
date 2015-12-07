@@ -11,6 +11,7 @@ HOME_DIR=~/
 BIN_DIR=${HOME_DIR}bin/
 DOWNLOAD_DIR=${HOME_DIR}download/
 ORACLE_PPA_INSTALL=true
+LOCAL_HOSTED_PATH=${VAGRANT_DIR}download/
 
 installPackage() {
   local packages=$*
@@ -25,6 +26,17 @@ download() {
   local url=$1$2
   local file=$2
   local downloadFile=${DOWNLOAD_DIR}${file}
+
+  if [ ! -z "$LOCAL_HOSTED_PATH" ]
+  then
+      #echo "Install from local resources"
+      if [ ! -e "$downloadfile" ]
+      then
+	  #echo "Using locally hosted files"
+	  cp ${LOCAL_HOSTED_PATH}${file} ${downloadFile}
+      fi
+  fi
+
   if [ ! -e "$downloadFile" ]
   then
     echo "Downloading ${url} to ${downloadFile}"
@@ -189,10 +201,12 @@ installRuntimes() {
     IFS=/ read -ra array <<< "$jdkFqp"
     elements=${#array[@]}
     let elements=$((elements-3))
+    echo "elements:${elements}"
     javaHome=""
     for (( i=${elements}; i>0; i--));
     do 
-	javaHome=/${array[$i]}$[javaHome]
+	echo "prefix:${javaHome} with: /${array[$i]}"
+	javaHome=/${array[$i]}${javaHome}
     done	
     "$HOME"/.jenv/bin/jenv add "${javaHome}" >/dev/null 2>&1;
   done <<< "$output"
@@ -282,7 +296,7 @@ installIntelliJ() {
   download http://download.jetbrains.com/idea/ ${file}
 
   extract ${DOWNLOAD_DIR}${file}
-  cp ${VAGRANT_DIR}settings.jar ${DOWNLOAD_DIR}
+  cp ${LOCAL_HOSTED_PATH}settings.jar ${DOWNLOAD_DIR}
 }
 
 installAndroidSdk() {
@@ -293,13 +307,13 @@ installAndroidSdk() {
 
     extract ${DOWNLOAD_DIR}${file}
 
-    set COMPONENTS="platform-tools,android-19,extra-android-support"
-    set LICENSES="android-sdk-license-5be876d5|mips-android-sysimage-license-15de68cc|intel-android-sysimage-license-1ea702d1"
-    curl -L https://raw.github.com/embarkmobile/android-sdk-installer/version-2/android-sdk-installer | bash /dev/stdin --install=$COMPONENTS --accept=$LICENSES && source ~/.android-sdk-installer/env  >/dev/null 2>&1;
+    #set COMPONENTS="platform-tools,android-19,extra-android-support"
+    #set LICENSES="android-sdk-license-5be876d5|mips-android-sysimage-license-15de68cc|intel-android-sysimage-license-1ea702d1"
+    #curl -L https://raw.github.com/embarkmobile/android-sdk-installer/version-2/android-sdk-installer | bash /dev/stdin --install=$COMPONENTS --accept=$LICENSES && source ~/.android-sdk-installer/env  >/dev/null 2>&1;
     
-#    "echo y | ${BIN_DIR}android-sdk-linux/tools/android -s update sdk -u --filter platform-tools"
-#    "echo y | ${BIN_DIR}android-sdk-linux/tools/android -s update sdk -u --filter android-19"
-#    "echo y | ${BIN_DIR}android-sdk-linux/tools/android -s update sdk -u --filter extra-android-support"
+    echo "y" | ${BIN_DIR}android-sdk-linux/tools/android -s update sdk -u --filter platform-tools
+    echo "y" | ${BIN_DIR}android-sdk-linux/tools/android -s update sdk -u --filter android-19
+    echo "y" | ${BIN_DIR}android-sdk-linux/tools/android -s update sdk -u --filter extra-android-support
 
     echo "Android Install complete"
 }
@@ -320,10 +334,10 @@ run() {
   installJdks
   installIbmJdk
   installTools
+  installAndroidSdk
   installEnvManagers
   installRuntimes
   installIntelliJ
-  installAndroidSdk
   #installEclipse
   updateBashrc
 }
