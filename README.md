@@ -4,7 +4,8 @@
 2. Install VirtualBox on your Host.
 3. Clone this repository in your workspace.
 4. In your workspace "vagrant up"
-5. Login to your box after download is complete with "vagrant ssh" or use your favorite ssh client. 
+5. After the provisioning is complete it's a good idea to restart the box with "vagrant halt;vagrant up"
+6. Login to your box with "vagrant ssh" or use your favorite ssh client. 
 
 The Linux Host Box will download and then the box is provisioned as described in provision.sh.  It's a bit on the heavy side but should create a consistant setup every time.
 
