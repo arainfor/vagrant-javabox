@@ -117,6 +117,20 @@ installIbmJdk() {
   echo "Install IBM JDK done!"
 }
 
+installNodeJs() {
+    echo 'Installing NodeJs'
+    curl -sL https://deb.nodesource.com/setup_5.x | sudo -E bash -
+    installPackage nodejs
+    #sudo ln -s /usr/bin/nodejs /usr/bin/node
+
+    echo "Install grunt"
+    sudo /usr/bin/npm install -g grunt-cli
+    echo "Install bower"
+    sudo /usr/bin/npm install -g bower
+    echo "Install rimraf"
+    sudo /usr/bin/npm install -g rimraf
+}
+
 installEnvManagers()
 {
   echo 'Installing environment managers (for Java and node.js) '
@@ -204,11 +218,6 @@ installRuntimes() {
   "$HOME"/.nodenv/bin/nodenv install 4.2.1 >/dev/null 2>&1
   "$HOME"/.nodenv/bin/nodenv global 4.2.1
 
-  echo "Install grunt"
-  npm install -g grunt-cli
-  echo "Install bower"
-  npm install -g bower
-
   set -e
 }
 
@@ -217,8 +226,8 @@ installApp() {
   local tool_name=$1
   local file=$2
   local url=$3
-  local link_src=$4
-  local link_target=$5
+  local link_target=${BIN_DIR}$4
+  local link_name=${BIN_DIR}$5
   echo "Installing $tool_name"
   downloadFile=${DOWNLOAD_DIR}${file};
   download "$url" "$file"
@@ -226,20 +235,20 @@ installApp() {
   
   if [[ "$file" =~ .*tar.gz$ || "$file" =~ .*tgz$ ]]
   then 
-    echo " using tar"
+    #echo " using tar"
     extract "${downloadFile}"
   else
     if [[ "$file" =~ .*zip$ ]]
     then
-      echo " using unzip"
+      #echo " using unzip"
       unzip "$file" >/dev/null 2>&1
     else
       echo
       echo "Can't extract $file. Unknown ext"
     fi
   fi
-  echo "Creating symbolic link $link_src to $link_target"
-  ln -sf "$link_src" "$link_target"
+  echo "Creating symbolic link $link_name to $link_target"
+  ln -sf $link_target $link_name 
 }
 
 installMvn()
@@ -306,16 +315,11 @@ installAndroidSdk() {
     echo "Android Install complete"
 }
 
-installTools() {
-  installMvn
-  #installAnt
-}
-
-intallChrome() {
+installChrome() {
   wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add - 
   sudo sh -c 'echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
-  sudo apt-get update
-  sudo apt-get install google-chrome-stable
+  sudo apt-get update >/dev/null 2>&1
+  installPackage google-chrome-stable
 }
 
 info() {
@@ -325,17 +329,25 @@ info() {
 run() {
   info 
   createDirs
+  installMvn
+  #installAnt
   installPackages
   installJdks
   installIbmJdk
-  installTools
+  installNodeJs
   installAndroidSdk
-  installEnvManagers
-  installRuntimes
+  #installEnvManagers
+  #installRuntimes
   installIntelliJ
   #installEclipse
   installChrome
   updateBashrc
+
+  echo "add DNS search names"
+  sudo sh -c 'echo search corp.gtech.com gtk.gtech.com > /etc/resolvconf/resolv.conf.d/base'
+  echo "fix jed keymap for backspace"
+  sudo sh -c 'echo "map_input (8, 127);" > /home/vagrant/.jedrc'
+
 }
 
 
