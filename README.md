@@ -2,6 +2,7 @@
 
 1. Install Vagrant on your Host.
 2. Install VirtualBox on your Host.
+3. Make sure you have a Box installed "vagrant box add ubuntu/trusty64"
 3. Clone this repository in your workspace.
 4. In your workspace "vagrant up"
 5. After the provisioning is complete it's a good idea to restart the box with "vagrant halt;vagrant up"
