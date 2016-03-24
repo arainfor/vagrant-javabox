@@ -64,6 +64,9 @@ installPackages() {
   echo "Processing VCS packages"
   installPackage subversion cvs git
   
+  echo "configure git to use https"
+  git config --global url."https://".insteadOf git://
+  
     # we should read a list of user defined packages too!
   installPackage jed vim mc expect
 }
