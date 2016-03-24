@@ -1,6 +1,9 @@
 
 # Start of vagrant provisioning template
 
+ZIPDATEBINARY=~/bin/zipdate
+MAKEBINSBINARY=~/bin/makebins
+
 export PATH="$HOME/.jenv/bin:$PATH"
 eval "$(jenv init -)"
 
