@@ -292,8 +292,8 @@ installEclipse() {
 
 installIntelliJ() {
   echo "Install IntelliJ IDEA"
-  # file=ideaIC-14.1.5.tar.gz
-  local file=ideaIC-15.0.1.tar.gz
+  # file=ideaIC-15.0.1.tar.gz
+  local file=ideaIC-2016.1.tar.gz
   download http://download.jetbrains.com/idea/ ${file}
 
   extract ${DOWNLOAD_DIR}${file}
